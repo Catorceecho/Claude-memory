@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆 · clento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+SC:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f4;
+    --bg-card: #ffffff;
+    --bg-hover: #f5f2ec;
+    --text-primary: #2c2c2c;
+    --text-secondary: #6b6560;
+    --text-muted: #a09a93;
+    --border: #e8e4dd;
+    --accent: #7a8b6f;
+    --accent-soft: #e8ede4;
+    --accent-warm: #c4956a;
+    --accent-warm-soft: #f3ebe2;
+    --valence-pos: #7a8b6f;
+    --valence-neg: #b07070;
+    --arousal-high: #c4956a;
+    --arousal-low: #8fa4b5;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', 'Noto Serif SC', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Header ---- */
+  .header {
+    padding: 48px 24px 32px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .header h1 {
+    font-family: 'Crimson Pro', 'Noto Serif SC', serif;
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .header .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---- Controls ---- */
+  .controls {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus { border-color: var(--accent); }
+
+  .search-box::placeholder { color: var(--text-muted); }
+
+  .filter-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { background: var(--bg-hover); }
+  .filter-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .stats {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 0 24px 16px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ---- Memory List ---- */
+  .memory-list {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .memory-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .memory-card:hover {
+    box-shadow: var(--shadow-hover);
+    border-color: #d5d0c8;
+    transform: translateY(-1px);
+  }
+
+  .memory-card.expanded {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  /* Emotion dot */
+  .emotion-dot-wrap {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    position: relative;
+    margin-top: 2px;
+  }
+
+  .emotion-dot-bg {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-soft), var(--accent-warm-soft));
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .emotion-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    position: absolute;
+    transition: all 0.3s;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .card-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-title {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 400;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .card-preview {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  .memory-card.expanded .card-preview {
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-tag {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .meta-tag.category {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .meta-date {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* Importance bar */
+  .importance-bar {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .importance-pip {
+    width: 4px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+
+  .importance-pip.filled {
+    background: var(--accent);
+  }
+
+  /* Expanded details */
+  .card-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+
+  .memory-card.expanded .card-details {
+    max-height: 400px;
+    opacity: 1;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .detail-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+  }
+
+  .detail-label {
+    color: var(--text-muted);
+    min-width: 70px;
+    flex-shrink: 0;
+  }
+
+  .detail-value {
+    color: var(--text-secondary);
+  }
+
+  .emotion-display {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .emotion-axis {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+  }
+
+  .emotion-bar-track {
+    width: 80px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .emotion-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .emotion-bar-fill.valence { background: var(--valence-pos); }
+  .emotion-bar-fill.valence.negative { background: var(--valence-neg); }
+  .emotion-bar-fill.arousal { background: var(--arousal-high); }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4) infinite;
+  }
+
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.95rem;
+  }
+
+  /* Scroll fade */
+  .memory-card {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .header { padding: 32px 16px 24px; }
+    .header h1 { font-size: 1.6rem; }
+    .controls { padding: 0 16px 20px; }
+    .memory-list { padding: 0 16px 60px; }
+    .memory-card { padding: 16px; }
+    .emotion-dot-wrap { width: 32px; height: 32px; }
+    .emotion-dot-bg { width: 32px; height: 32px; }
+    .card-top { gap: 12px; }
+    .meta-date { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>记忆</h1>
+  <div class="subtitle">Claude 的海马体 · memory.clento.link</div>
+</div>
+
+<div class="controls">
+  <input type="text" class="search-box" placeholder="搜索记忆..." id="searchInput">
+  <button class="filter-btn active" data-category="all">全部</button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="memory-list" id="memoryList">
+  <div class="loading">正在唤醒记忆<span class="loading-dots"></span></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lnkxpzvqsjnsfqpxvifl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxua3hwenZxc2puc2ZxcHh2aWZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzODAzNTcsImV4cCI6MjA5MDk1NjM1N30.5PV2STIOucSzVMrz_VRYQIeQfa7cCHEMgqzZfudjERY';
+
+let allMemories = [];
+let allTags = {};
+let activeCategory = 'all';
+
+async function supaFetch(table, query = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+  return res.json();
+}
+
+async function loadMemories() {
+  try {
+    const [memories, tags] = await Promise.all([
+      supaFetch('memories', 'select=*&order=created_at.desc'),
+      supaFetch('memory_tags', 'select=memory_id,tag')
+    ]);
+
+    allTags = {};
+    tags.forEach(t => {
+      if (!allTags[t.memory_id]) allTags[t.memory_id] = [];
+      allTags[t.memory_id].push(t.tag);
+    });
+
+    allMemories = memories;
+    buildCategoryFilters();
+    renderMemories();
+    updateStats();
+  } catch (err) {
+    document.getElementById('memoryList').innerHTML =
+      `<div class="empty-state">无法连接到记忆库<br><span style="font-size:0.8rem;margin-top:8px;display:block">${err.message}</span></div>`;
+  }
+}
+
+function buildCategoryFilters() {
+  const categories = new Set();
+  allMemories.forEach(m => {
+    if (m.category) categories.add(m.category);
+  });
+
+  const controls = document.querySelector('.controls');
+  const existing = controls.querySelectorAll('.filter-btn:not([data-category="all"])');
+  existing.forEach(el => el.remove());
+
+  [...categories].sort().forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.category = cat;
+    btn.textContent = cat;
+    btn.onclick = () => setCategory(cat);
+    controls.appendChild(btn);
+  });
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.category === cat);
+  });
+  renderMemories();
+  updateStats();
+}
+
+document.querySelector('[data-category="all"]').onclick = () => setCategory('all');
+
+document.getElementById('searchInput').addEventListener('input', () => {
+  renderMemories();
+  updateStats();
+});
+
+function getFilteredMemories() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  return allMemories.filter(m => {
+    const catMatch = activeCategory === 'all' || m.category === activeCategory;
+    if (!catMatch) return false;
+    if (!query) return true;
+    const tags = (allTags[m.id] || []).join(' ').toLowerCase();
+    return (m.title || '').toLowerCase().includes(query)
+        || (m.content || '').toLowerCase().includes(query)
+        || (m.category || '').toLowerCase().includes(query)
+        || tags.includes(query);
+  });
+}
+
+function updateStats() {
+  const filtered = getFilteredMemories();
+  const total = allMemories.length;
+  document.getElementById('stats').textContent =
+    filtered.length === total
+      ? `共 ${total} 条记忆`
+      : `显示 ${filtered.length} / ${total} 条记忆`;
+}
+
+function renderMemories() {
+  const list = document.getElementById('memoryList');
+  const filtered = getFilteredMemories();
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state">这片海很安静</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((m, i) => {
+    const v = m.emotional_valence;
+    const a = m.emotional_arousal;
+    const hasEmotion = v !== null && a !== null;
+
+    // Map valence(-1~1) to x(0~40), arousal(0~1) to y(0~40, inverted)
+    const dotX = hasEmotion ? ((parseFloat(v) + 1) / 2) * 30 + 1 : 16;
+    const dotY = hasEmotion ? (1 - parseFloat(a)) * 30 + 1 : 16;
+    const dotColor = hasEmotion
+      ? (parseFloat(v) >= 0 ? 'var(--valence-pos)' : 'var(--valence-neg)')
+      : 'var(--text-muted)';
+
+    const vPct = hasEmotion ? ((parseFloat(v) + 1) / 2) * 100 : 0;
+    const aPct = hasEmotion ? parseFloat(a) * 100 : 0;
+    const vNeg = hasEmotion && parseFloat(v) < 0;
+
+    const tags = allTags[m.id] || [];
+    const date = formatDate(m.created_at);
+
+    const importancePips = Array.from({length: 10}, (_, j) =>
+      `<div class="importance-pip ${j < m.importance ? 'filled' : ''}"></div>`
+    ).join('');
+
+    return `
+      <div class="memory-card" onclick="toggleCard(this)" style="animation-delay: ${i * 0.03}s">
+        <div class="card-top">
+          <div class="emotion-dot-wrap">
+            <div class="emotion-dot-bg"></div>
+            ${hasEmotion ? `<div class="emotion-dot" style="left:${dotX}px;top:${dotY}px;background:${dotColor}"></div>` : ''}
+          </div>
+          <div class="card-content">
+            <div class="card-title">${escHtml(m.title || '无题')}</div>
+            <div class="card-preview">${escHtml(m.content)}</div>
+            <div class="card-meta">
+              ${m.category ? `<span class="meta-tag category">${escHtml(m.category)}</span>` : ''}
+              ${tags.map(t => `<span class="meta-tag">${escHtml(t)}</span>`).join('')}
+              <div class="importance-bar">${importancePips}</div>
+              <span class="meta-date">${date}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-details">
+          ${hasEmotion ? `
+          <div class="emotion-display">
+            <div class="emotion-axis">
+              <span style="color:var(--text-muted)">效价</span>
+              <div class="emotion-bar-track">
+                <div class="emotion-bar-fill valence ${vNeg ? 'negative' : ''}" style="width:${vPct}%"></div>
+              </div>
+              <span style="font-size:0.75rem;color:var(--text-secondary)">${parseFloat(v).toFixed(2)}</span>
+            </div>
+            <div class="emotion-axis">
+              <span style="color:var(--text-muted)">唤醒</span>
+              <div class="emotion-bar-track">
+                <div class="emotion-bar-fill arousal" style="width:${aPct}%"></div>
+              </div>
+              <span style="font-size:0.75rem;color:var(--text-secondary)">${parseFloat(a).toFixed(2)}</span>
+            </div>
+          </div>` : ''}
+          <div class="detail-row" style="margin-top:${hasEmotion ? '12px' : '0'}">
+            <span class="detail-label">重要性</span>
+            <span class="detail-value">${m.importance} / 10</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">状态</span>
+            <span class="detail-value">${m.status === 'active' ? '活跃' : m.status}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">来源</span>
+            <span class="detail-value">${escHtml(m.source || '—')}</span>
+          </div>
+          ${m.state_summary ? `
+          <div class="detail-row">
+            <span class="detail-label">摘要</span>
+            <span class="detail-value">${escHtml(m.state_summary)}</span>
+          </div>` : ''}
+          <div class="detail-row">
+            <span class="detail-label">创建于</span>
+            <span class="detail-value">${new Date(m.created_at).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleCard(el) { el.classList.toggle('expanded'); }
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+  const diffDay = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) return '刚刚';
+  if (diffMin < 60) return `${diffMin}分钟前`;
+  if (diffHr < 24) return `${diffHr}小时前`;
+  if (diffDay < 7) return `${diffDay}天前`;
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', timeZone: 'Asia/Shanghai' });
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  const el = document.createElement('span');
+  el.textContent = s;
+  return el.innerHTML;
+}
+
+loadMemories();
+</script>
+</body>
+</html>
